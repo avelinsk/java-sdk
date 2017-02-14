@@ -12,7 +12,12 @@
  */
 package com.ibm.watson.developer_cloud.visual_recognition.v3;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 import com.google.gson.JsonArray;
@@ -484,8 +489,17 @@ public class VisualRecognition extends WatsonService {
     bodyBuilder.addFormDataPart(PARAM_IMAGE_FILE, options.image().getName(), requestBody);
 
     if (options.metadata() != null && !options.metadata().isEmpty()) {
-      String metadata = GsonSingleton.getGsonWithoutPrettyPrinting().toJson(options.metadata());
-      bodyBuilder.addFormDataPart(PARAM_METADATA, metadata);
+      String metadataString = GsonSingleton.getGsonWithoutPrettyPrinting().toJson(options.metadata());
+
+      try {
+        Path metadataPath = Files.createTempFile("metadata", ".json");
+        File metadataFile = Files.write(metadataPath, metadataString.getBytes()).toFile();
+        RequestBody metadataBody = RequestBody.create(HttpMediaType.BINARY_FILE, metadataFile);
+        bodyBuilder.addFormDataPart(PARAM_METADATA, "metadata.json", metadataBody);
+      } catch(IOException e) {
+        // ignore and set the metadata as String
+        bodyBuilder.addFormDataPart(PARAM_METADATA, metadataString);
+      }
     }
 
     RequestBuilder requestBuilder = RequestBuilder.post(String.format(PATH_COLLECTION_IMAGES, options.collectionId()));
